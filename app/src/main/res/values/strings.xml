@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">AttackerAppJava</string>
+    <string name="output">OUTPUT</string>
+    <string name="request_permission">Request Permission</string>
+    <string name="run_command">Run command</string>
+    <string name="stop_service">Stop Service</string>
+    <string name="start_service">Start Service</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="login">Login</string>
+</resources>
