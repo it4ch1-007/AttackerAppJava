@@ -47,6 +47,7 @@ public class OverlayService extends Service {
                     boolean output = privilegedService.triggerOverlay();
                     if(output){
                         triggerOverlayActivity("Triggered OverlayActivity from OverlayService");
+                        handler.removeCallbacks(runnable);
                     }
                     else{
                         handler.postDelayed(this,1000);

