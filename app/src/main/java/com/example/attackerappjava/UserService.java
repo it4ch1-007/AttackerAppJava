@@ -111,20 +111,17 @@ public class UserService extends IUserService.Stub {
 
     public void writeToFile(String fileName, String content) {
         Log.d(TAG, "Writing to file...");
-        Thread thread = new Thread(()-> {
+        new Thread(()-> {
             Process process = null;
             BufferedReader reader = null;
             try {
-                process = new ProcessBuilder("echo ", content, " >> ", fileName).start();
+                Log.d(TAG,"Executing echo command");
+                process = new ProcessBuilder("/system/bin/sh", "-c", "echo '" + content + "' >> " + fileName).start();
                 int exitCode = process.waitFor();
                 Log.d(TAG, "Command exited with code: " + exitCode);
             } catch (Exception ignored) {
             }
-        });
-        try {
-            thread.join();
-        } catch (Exception ignored) {
-        }
+        }).start();
     }
 
     public void deleteFile(String filePath) {

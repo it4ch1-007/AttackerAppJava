@@ -176,8 +176,6 @@ public class MainActivity extends AppCompatActivity {
             privilegedService.gatherPermission("READ_EXTERNAL_STORAGE");
             fnsleep(1);
             privilegedService.gatherPermission("WRITE_EXTERNAL_STORAGE");
-            fnsleep(1);
-            privilegedService.gatherPermission("INTERNET");
 //            privilegedService.gatherPermission("FOREGROUND_SERVICE");
 //            privilegedService.gatherPermission("FOREGROUND_SERVICE_SPECIAL_USE");
         } catch (RemoteException e) {

