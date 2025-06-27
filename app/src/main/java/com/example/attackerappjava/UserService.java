@@ -14,6 +14,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class UserService extends IUserService.Stub {
+    AtomicBoolean flag = new AtomicBoolean(false);
     public UserService() {
         Log.i("UserService", "constructor");
     }
@@ -57,51 +58,60 @@ public class UserService extends IUserService.Stub {
     }
 
     public boolean triggerOverlay() {
-        Log.d(TAG, "Running...");
-        AtomicBoolean flag = new AtomicBoolean(false);
-        new Thread(() -> {
-            Process process = null;
-            BufferedReader reader = null;
-            Pattern pattern = Pattern.compile("topResumedActivity=ActivityRecord\\{.*? (\\S+)/(\\S+) t\\d+\\}");
-            try {
-                process = new ProcessBuilder("dumpsys", "activity", "activities").start();
-                reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    Matcher matcher = pattern.matcher(line);
-                    if (matcher.find()) {
-                        Log.d(TAG, matcher.group(1));
-                        Log.d(TAG, matcher.group(2));
-                        if (Objects.equals(matcher.group(1), "com.aheaditec.talsec.demoapp") && Objects.equals(matcher.group(2), ".LoginActivity")) {
-                            Log.d(TAG, "The trigger overlay should be triggered now...");
-                            flag.set(true);
-                            break;
+//        Log.d(TAG, "Running...");
+        if(!flag.get()) {
+            Thread thread = new Thread(() -> {
+                Process process = null;
+                BufferedReader reader = null;
+                Pattern pattern = Pattern.compile("topResumedActivity=ActivityRecord\\{.*? (\\S+)/(\\S+) t\\d+\\}");
+                try {
+                    process = new ProcessBuilder("dumpsys", "activity", "activities").start();
+                    reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        Matcher matcher = pattern.matcher(line);
+                        if (matcher.find()) {
+                            Log.d(TAG, matcher.group(1));
+                            Log.d(TAG, matcher.group(2));
+                            if (Objects.equals(matcher.group(1), "com.aheaditec.talsec.demoapp") && Objects.equals(matcher.group(2), ".LoginActivity")) {
+                                Log.d(TAG, "The trigger overlay should be triggered now...");
+                                flag.set(true);
+                                Log.d(TAG, "Atomic value written to true");
+                                Thread.sleep(3000);
+                                break;
+                            }
                         }
                     }
+                    reader.close();
+                    reader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+                    while ((line = reader.readLine()) != null) {
+                        Log.e(TAG, "Command Error: " + line);
+                    }
+                    reader.close();
+                    int exitCode = process.waitFor();
+                    Log.d(TAG, "Command exited with code: " + exitCode);
+                } catch (Exception err) {
+                    Log.e(TAG, "Failed to execute command!!", err);
+                } finally {
+                    if (process != null) {
+                        process.destroy();
+                    }
                 }
-                reader.close();
-                reader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-                while ((line = reader.readLine()) != null) {
-                    Log.e(TAG, "Command Error: " + line);
-                }
-                reader.close();
-                int exitCode = process.waitFor();
-                Log.d(TAG, "Command exited with code: " + exitCode);
-            } catch (Exception err) {
-                Log.e(TAG, "Failed to execute command!!", err);
-            } finally {
-                if (process != null) {
-                    process.destroy();
-                }
+                Log.d(TAG, "The triggerable victim activity is not found...");
+            });
+            thread.start();
+            try {
+                thread.join();
+            } catch (Exception ignored) {
             }
-            Log.d(TAG, "The triggerable victim activity is not found...");
-        }).start();
+        }
+        Log.d(TAG, String.valueOf(flag.get()));
         return flag.get();
     }
 
     public void writeToFile(String fileName, String content) {
         Log.d(TAG, "Writing to file...");
-        new Thread(()-> {
+        Thread thread = new Thread(()-> {
             Process process = null;
             BufferedReader reader = null;
             try {
@@ -110,7 +120,11 @@ public class UserService extends IUserService.Stub {
                 Log.d(TAG, "Command exited with code: " + exitCode);
             } catch (Exception ignored) {
             }
-        }).start();
+        });
+        try {
+            thread.join();
+        } catch (Exception ignored) {
+        }
     }
 
     public void deleteFile(String filePath) {
